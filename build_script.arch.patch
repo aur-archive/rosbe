@@ -1,0 +1,55 @@
+--- RosBE-Builder.sh	2012-02-11 19:27:18.000000000 +0200
++++ RosBE-Builder.sh.arch	2012-04-24 16:07:14.728630768 +0300
+@@ -21,7 +21,7 @@
+ fi
+ 
+ # RosBE Setup Variables
+-rs_host_cflags="-pipe -O2 -Wl,-S -g0"
++rs_host_cflags="$CFLAGS"
+ rs_needed_tools="bison flex $CC $CXX grep makeinfo"        # GNU Make has a special check
+ rs_target="i686-w64-mingw32"
+ rs_target_cflags="-pipe -O2 -Wl,-S -g0 -march=pentium -mtune=i686"
+@@ -48,7 +48,7 @@
+ echo "*                      Builder Tool for the Base package                      *"
+ echo "*                      by Colin Finck <colin@reactos.org>                     *"
+ echo "*                                                                             *"
+-echo "*                                 Version $ROSBE_VERSION                                 *"
++echo "*                                 Version $ROSBE_VERSION                      *"
+ echo "*******************************************************************************"
+ 
+ echo
+@@ -264,7 +264,17 @@
+ 	rs_do_command $CC -s -o "$rs_prefixdir/bin/cpucount" "$rs_scriptdir/tools/cpucount.c"
+ fi
+ 
+-rs_cpucount=`$rs_prefixdir/bin/cpucount -x1`
++# Load the job thread count from makepkg.conf
++# if set, otherwice use cpucount
++if [[ "$MAKEFLAGS" == "" ]]; then
++	rs_cpucount=`$installdir/bin/cpucount -x1`
++else
++	for i in `echo $MAKEFLAGS`; do
++		if `echo "$i" | grep -q "\-j"`; then
++			rs_cpucount=`echo "$i" | sed 's|-j||g'`
++		fi
++	done
++fi
+ 
+ if $rs_process_scut; then
+ 	rs_do_command $CC -s -o "$rs_prefixdir/bin/scut" "$rs_scriptdir/tools/scut.c"
+@@ -448,15 +458,3 @@
+ 
+ # Finish
+ rs_boldmsg "Finished successfully!"
+-echo "To create a shortcut to the Build Environment on the Desktop, please switch back to your"
+-echo "normal User Account (I assume you ran this script as \"root\")."
+-echo "Then execute the following command:"
+-echo
+-echo "  $installdir/createshortcut.sh"
+-echo
+-echo "If you just want to start the Build Environment without using a shortcut, execute the"
+-echo "following command:"
+-echo
+-echo "  $installdir/RosBE.sh [source directory] [color code] [architecture]"
+-echo
+-echo "All parameters for that script are optional."
